@@ -9,8 +9,8 @@
   infra-apply.yml
   app-deploy.yml
 app/
-  src/
-  tests/
+  src/  # HTTP service and Go tests
+  go.mod
   Dockerfile
 infra/
   bootstrap/
@@ -36,7 +36,7 @@ AGENTS.md
 README.md
 ```
 
-This is a **planned structure**, not an implemented set of pipelines or infrastructure.
+This is the target structure. The sample app and PR CI are implemented; the Azure infrastructure and deployment pipelines are not.
 
 ## Milestone 1 — Foundation (2–3 developer days)
 
@@ -49,9 +49,10 @@ This is a **planned structure**, not an implemented set of pipelines or infrastr
 
 ## Milestone 2 — CI/CD (3–4 developer days)
 
-- [ ] Implement sample HTTP application, Dockerfile and tests
+- [x] Implement sample HTTP application, Dockerfile and tests
+- [x] Add PR checks for Go and an HTTP smoke test against the container
 - [ ] Build Terraform modules and dev environment
-- [ ] Implement PR CI, plan summary and security checks
+- [ ] Add Terraform plan summary and infrastructure security checks to PR CI
 - [ ] Implement protected Terraform apply
 - [ ] Build, scan, push image and deploy by digest
 - [ ] Verify HTTPS health endpoint and runtime logs
