@@ -1,0 +1,10 @@
+{
+  "name": "open-azure",
+  "version": "0.1.0",
+  "description": "Inventory and diagnose Azure resources from Codex without changing them.",
+  "interface": {
+    "displayName": "Open Azure"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}
