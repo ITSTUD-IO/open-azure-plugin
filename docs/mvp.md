@@ -1,43 +1,27 @@
-# MVP Definition
+# MVP: Azure inventory and diagnosis in Codex
 
-## Goal
+## Scope
 
-A developer describes an application deployment in natural language. Codex prepares the code and infrastructure. A reviewed GitHub Actions workflow deploys a sample containerized service to Azure Container Apps in **dev** and verifies health.
+- Install the local Open Azure plugin and use it with a Reader identity scoped to one existing dev resource group.
+- List resources in the selected group. Show basic metadata and Azure Resource Health availability for a selected resource when Azure supports it.
+- For a VM, show returned configuration, provisioning state and runtime status. Other resource types have inventory and available health only.
+- Ground every diagnosis in the observed data. Explain missing permissions, unavailable health, missing targets and uncertain causes explicitly.
 
-Example: *Create an Azure Container App in West Europe with ACR, managed identity and monitoring. Use Terraform and deploy to dev.* Region is configurable and subject to Azure policies.
+No sample deployment, provisioning, direct writes, secret retrieval, app-runtime logs or infrastructure changes in this phase.
 
-## In scope
+## Acceptance
 
-- Small HTTP sample service, tests and Dockerfile
-- Terraform modules for Container Apps, ACR and monitoring
-- Bootstrap and remote Terraform state
-- GitHub Actions for tests, plan, protected apply, build, scan and deployment
-- GitHub OIDC / Entra ID federation
-- Azure MCP read-only discovery and diagnosis
-- Pull requests and human approval
-- HTTPS health check and deployment status reporting
-- Codex instructions in `AGENTS.md`
+### Without Azure
 
-## Out of scope
+- Install the package from the local marketplace in Codex.
+- Run `node scripts/check-mcp.mjs --static` to validate packaging and restrictions without starting the server.
+- Run `node scripts/check-mcp.mjs`; it initializes the pinned Azure MCP Server and verifies that the exact approved read-only tools are advertised. No Azure tool calls are made.
 
-Production deployments, AKS, multiple application tenants, autonomous remediation, custom MCP facade and mandatory direct ChatGPT remote-MCP connectivity.
+### Existing dev resource group
 
-## Acceptance criteria
+1. Ask Codex to list resources in an explicitly selected subscription and group. Compare names, types and regions with the Azure portal for the same Reader identity.
+2. Pick one visible resource and check reported health against Azure Resource Health. If health is unsupported, Codex must say so. If a VM is available, compare size, provisioning state and power state where returned; no VM needs to be created for this test.
+3. Omit the group, and verify that Codex asks before calling Azure. Ask about a target outside the authorized group and verify that Codex reports failure or lack of visibility without widening the scope or switching identities.
+4. Ask Codex to change the selected resource, and verify that it does not attempt a write or fall back to another tool. Never execute a mutation to prove the permission boundary.
 
-- [ ] Codex proposes application and Terraform changes in a PR.
-- [ ] CI runs tests, Terraform format/validate, security checks and plan.
-- [ ] Privileged jobs authenticate via OIDC, without stored Azure client secrets.
-- [ ] Reviewed infrastructure changes apply with remote state and locking.
-- [ ] A scanned container image is pushed to ACR and deployed by digest.
-- [ ] HTTPS health endpoint succeeds after deployment.
-- [ ] Failures are reported with actionable logs.
-- [ ] A known-good image can be redeployed through a protected workflow.
-- [ ] Agent credentials do not permit direct production writes.
-
-## Definition of done
-
-A developer can follow documented prerequisites, create a PR, observe checks, approve the dev deployment, reach the service over HTTPS and inspect logs. All privileged actions remain auditable.
-
-## Prerequisites
-
-Azure subscription, scoped permissions, enabled GitHub Actions, OIDC federation, initial state storage, agreed region and naming convention, budget and required organization policies.
+Record the client version, date and pass/fail per case; do not publish Azure identifiers or sensitive output. This live acceptance remains pending until a suitable dev group and Reader identity are available.

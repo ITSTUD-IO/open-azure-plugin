@@ -1,37 +1,19 @@
 # Open Azure Plugin
 
-**Agentic Azure Application Deployment Platform** — architecture and MVP design.
+A Codex plugin for managing Azure resources. The first release focuses on **read-only inventory and diagnosis** in an existing development resource group. It does not provision Azure infrastructure or depend on the sample application.
 
-> Status: Architecture / MVP planning. No Azure resources or deployment pipelines have been provisioned.
+## Try it locally
 
-## Vision
+1. Check that Node.js 22+ with `npx` and the Azure CLI are available in the environment where Codex runs. Sign in locally with `az login` using an identity with only **Reader** access to the target dev resource group. No Azure credentials belong in this repository or in chat.
+2. Open the checkout as a trusted project in Codex. In the desktop app, restart after checkout if necessary, then install **Open Azure** from the **ITSTUD-IO Azure** source in the Plugins Directory. In Codex CLI, from the repository root, use `codex plugin marketplace add .` and `codex plugin add open-azure@itstud-io-azure`, then start a fresh session.
+3. Ask: “In subscription `<subscription-id>` and resource group `<dev-resource-group>`, list resources. For `<resource-name>`, show the available Azure health evidence and say what you cannot determine.” To test configuration and provisioning/runtime state, select an existing VM.
 
-ChatGPT handles natural-language intent and review, Codex prepares application and infrastructure changes, MCP provides scoped integration with Azure and GitHub, and GitHub Actions executes reviewed deployments.
+The plugin starts Microsoft's Azure MCP Server locally over stdio. The pinned npm version, server-side read-only mode and explicit tool list define the tool surface; scoped Azure RBAC is the authorization boundary. The first npm download can take longer than later starts. The plugin does not grant Azure roles. Use an identity without broader inherited roles and avoid running other privileged Azure tooling in the same Codex context. The plugin explicitly [disables Azure MCP telemetry](https://github.com/microsoft/mcp/blob/Azure.Mcp.Server-3.0.0/servers/Azure.Mcp.Server/README.md#disabling-all-telemetry); initial npm download still requires registry access.
 
-**Principle:** Agents propose; protected GitHub Actions workflows deploy.
+## What's next
 
-## Documentation
+- [MVP acceptance and tests](docs/mvp.md)
+- [Architecture](docs/architecture.md) · [Backlog](docs/backlog.md)
+- [Future deployment flow](docs/deployment-flow.md) · [Security and governance](docs/security.md)
 
-- [Technical architecture](docs/architecture.md)
-- [MVP definition and acceptance criteria](docs/mvp.md)
-- [Deployment process](docs/deployment-flow.md)
-- [Security and governance](docs/security.md)
-- [Implementation backlog](docs/backlog.md)
-- [Coding agent instructions](AGENTS.md)
-
-## Initial stack
-
-ChatGPT, Codex, Azure MCP Server, GitHub MCP/connector, Terraform, GitHub Actions, Azure Container Apps, Azure Container Registry, Azure Key Vault, Azure Monitor, Entra ID with OIDC, and Azure Blob Storage for Terraform state.
-
-The first MVP targets one containerized application in one Azure dev environment. Production deployment, AKS and a custom remote deployment MCP facade are later phases.
-
-## Official references
-
-- [Azure MCP Server](https://learn.microsoft.com/en-us/azure/developer/azure-mcp-server/)
-- [Azure MCP source](https://github.com/Azure/azure-mcp)
-- [Azure Container Apps GitHub Actions](https://learn.microsoft.com/en-us/azure/container-apps/github-actions)
-- [GitHub Actions OIDC in Azure](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-azure)
-
-## Next step
-
-Bootstrap the dev Azure environment and OIDC identities, implement a sample service with Terraform, and add protected GitHub Actions workflows.
+Next: generate or update Terraform/Bicep inside the **application's own repository**, following its conventions. Validate the output without applying it. Direct Azure writes, with separate authorization and explicit approval, are a later mode.

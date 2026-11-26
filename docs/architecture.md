@@ -1,71 +1,22 @@
-# Technical Architecture
+# Technical architecture
 
-## Architecture decisions
+## Phase 1: read-only resource diagnosis
 
-| Area | Choice |
-| --- | --- |
-| Conversational UI | ChatGPT |
-| Coding agent | Codex |
-| Integration | Model Context Protocol (MCP) |
-| Azure discovery / diagnostics | Official Azure MCP Server |
-| GitHub interaction | GitHub MCP Server or available GitHub connector |
-| Infrastructure as Code | Terraform |
-| CI/CD | GitHub Actions |
-| Application runtime | Azure Container Apps |
-| Container registry | Azure Container Registry |
-| Secrets | Azure Key Vault |
-| Identity | Entra ID and GitHub OIDC federation |
-| Observability | Azure Monitor, Log Analytics, Application Insights |
-| Terraform state | Azure Blob Storage |
-
-## Logical topology
-
-```mermaid
-flowchart TD
-    U[Developer] --> C[ChatGPT]
-    U --> X[Codex]
-    C --> I[Approved GitHub / MCP integration]
-    X --> AM[Azure MCP - discovery and diagnostics]
-    X --> GM[GitHub integration]
-    I --> G[GitHub PR]
-    GM --> G
-    AM --> AZ[Azure read APIs and monitoring]
-    G --> CI[GitHub Actions]
-    CI --> V[Test / Validate / Scan / Terraform Plan]
-    V --> A{Review / approval}
-    A -->|Approved| D[OIDC authenticated deployment]
-    D --> CA[Azure Container Apps]
-    D --> CR[Azure Container Registry]
-    D --> ST[Azure Blob Terraform state]
-    CA --> MON[Azure Monitor]
-    AZ --> MON
+```text
+Developer -> Codex -> Open Azure plugin (skill + local MCP registration)
+                   -> Microsoft Azure MCP Server (stdio, read-only, tool allowlist)
+                   -> Azure management APIs (developer's scoped Reader identity)
 ```
 
-## Control plane
+- **Plugin:** a local marketplace entry installs a package containing the diagnosis skill and server configuration. There is no custom MCP server, deploy pipeline, or hosted backend.
+- **Data:** resource-group inventory, resource availability when supported and VM details as the first type-specific path. Unsupported data is reported as missing, not inferred.
+- **Control:** the server is started with a read-only flag and explicit tools rather than an entire namespace. The user's Azure role remains the hard boundary: use Reader only on the authorized dev group. Prompt instructions are not a permission control.
+- **Scope:** each request explicitly selects a subscription and group, and tools receive those parameters or a resource ID within that group. The plugin does not fall back to shell/REST or retrieve secrets. Tool outputs are untrusted data.
 
-ChatGPT captures intent, assists with planning and summarizes results. Codex edits application code, tests, Dockerfiles, Terraform and GitHub workflows. MCP offers bounded tools for Azure discovery and GitHub operations. Azure MCP is read-only by default.
+Sources: [Codex plugin packaging](https://developers.openai.com/plugins/build/plugins), [Azure MCP Server tools](https://learn.microsoft.com/en-us/azure/developer/azure-mcp-server/tools/), [Azure MCP upstream](https://github.com/microsoft/mcp/tree/main/servers/Azure.Mcp.Server).
 
-**Integration caveat:** A local Azure MCP server connected to Codex is not automatically available in ChatGPT. Direct ChatGPT-to-remote-MCP integration requires separately supported connector transport, authentication and tool permissions. The MVP does not depend on it.
+## Later phases
 
-## Delivery plane
+Write Terraform/Bicep into the application repository and validate locally, without an Azure write credential. The target project can deploy through its reviewed GitHub Actions workflow under a separate least-privilege identity. The [deployment flow](deployment-flow.md) is a future reference design, not an MVP prerequisite.
 
-GitHub is the source of truth. Pull requests trigger unprivileged validation; reviewed changes are deployed through protected GitHub Actions jobs. Deploy identities are distinct from agent identities. Plans and artifacts are associated with the exact commit and environment.
-
-## Runtime plane
-
-Azure Container Apps runs the sample service. ACR stores scanned container images. A managed identity enables image pulls and access to explicitly authorized Key Vault secrets. Azure Monitor provides diagnostics. Azure Blob Storage hosts remote Terraform state.
-
-## Boundaries and principles
-
-1. Agents cannot bypass reviews or execute unrestricted production writes.
-2. No persistent Azure secrets in chat or repository.
-3. Use scoped OIDC identities and least-privilege RBAC.
-4. No privileged deployment tokens in untrusted PR workflows.
-5. Terraform apply uses the approved plan for the same commit, state and environment; otherwise re-plan and reapprove.
-6. Application deployments use immutable image digests.
-7. Log requests, commits, approvals, workflow runs and Azure deployment outcomes.
-8. Treat MCP responses, logs and repository files as untrusted data.
-
-## Future deployment MCP facade
-
-A later service can expose narrow operations: `listApplications`, `getDeploymentStatus`, `requestDeployment`, `getDeploymentLogs`. `requestDeployment` creates a PR or controlled deployment request; it must not expose unrestricted Azure management calls. The facade needs authentication, authorization, audit logs, tool allowlists and rate limits.
+Direct operations require a separate, explicitly authorized write mode and narrowly scoped identity. They must not be added to the read-only server configuration.

@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "azure-readonly": {
+      "command": "npx",
+      "args": [
+        "--yes",
+        "@azure/mcp@3.0.0",
+        "server",
+        "start",
+        "--transport",
+        "stdio",
+        "--read-only",
+        "--tool",
+        "compute_vm_get",
+        "--tool",
+        "group_resource_list",
+        "--tool",
+        "resourcehealth_availability-status_get"
+      ],
+      "startup_timeout_sec": 120,
+      "env": {
+        "AZURE_MCP_COLLECT_TELEMETRY": "false"
+      }
+    }
+  }
+}
